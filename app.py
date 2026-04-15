@@ -2,12 +2,23 @@
 app.py
 
 Streamlit interface for SVD Image Compression Tool
+
+New features added in this version:
+
+1. Compression ratio display
+2. Reconstruction error (Frobenius norm)
 """
 
 import streamlit as st
 import numpy as np
 from PIL import Image
-from svd_utils import compress_image
+
+# Import functions from math module
+from svd_utils import (
+    compress_image,
+    calculate_compression_ratio,
+    reconstruction_error
+)
 
 
 # Page title
@@ -26,26 +37,26 @@ if uploaded_file is not None:
     # Load image
     image = Image.open(uploaded_file).convert("RGB")
 
-    # Resize large images for faster SVD processing
+    # Resize large images for faster SVD
     MAX_SIZE = 512
     if max(image.size) > MAX_SIZE:
         image.thumbnail((MAX_SIZE, MAX_SIZE))
 
-    # Convert image to numpy array
+    # Convert image to NumPy array
     image_array = np.array(image)
 
-    # Show original image
+    # Display original image
     st.subheader("Original Image")
     st.image(image_array, width=600)
 
 
-    # Determine safe rank range
+    # Determine max possible rank
     max_rank = min(image_array.shape[0], image_array.shape[1])
 
-    # Limit slider max for performance
+    # Limit slider range for performance
     slider_max = min(max_rank, 200)
 
-    # Compression slider
+    # Rank selection slider
     k = st.slider(
         "Select compression rank (k)",
         min_value=1,
@@ -59,6 +70,20 @@ if uploaded_file is not None:
         compressed_image = compress_image(image_array, k)
 
 
-    # Show compressed image
+    # Display compressed image
     st.subheader("Compressed Image")
     st.image(compressed_image, width=600)
+
+
+    # Compute compression ratio
+    ratio = calculate_compression_ratio(image_array.shape, k)
+
+    # Compute reconstruction error
+    error = reconstruction_error(image_array, compressed_image)
+
+
+    # Display metrics
+    st.subheader("Compression Analysis")
+
+    st.write(f"Compression Ratio: **{ratio}% storage saved**")
+    st.write(f"Reconstruction Error (Frobenius Norm): **{error}**")
