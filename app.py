@@ -10,15 +10,15 @@ Features:
 3. Original vs compressed display
 4. Compression ratio metric
 5. Reconstruction error metric
-6. Graphs:
-   - Compression ratio vs rank
-   - Reconstruction error vs rank
+6. Analysis graphs
+7. Download compressed image button
 """
 
 import streamlit as st
 import numpy as np
 import matplotlib.pyplot as plt
 from PIL import Image
+from io import BytesIO
 
 from svd_utils import (
     compress_image,
@@ -43,7 +43,7 @@ if uploaded_file is not None:
     # Load image
     image = Image.open(uploaded_file).convert("RGB")
 
-    # Resize for performance
+    # Resize large images for performance
     MAX_SIZE = 512
     if max(image.size) > MAX_SIZE:
         image.thumbnail((MAX_SIZE, MAX_SIZE))
@@ -51,12 +51,12 @@ if uploaded_file is not None:
     image_array = np.array(image)
 
 
-    # Show original
+    # Display original image
     st.subheader("Original Image")
     st.image(image_array, width=600)
 
 
-    # Rank selection
+    # Rank slider
     max_rank = min(image_array.shape[0], image_array.shape[1])
     slider_max = min(max_rank, 200)
 
@@ -73,12 +73,12 @@ if uploaded_file is not None:
         compressed_image = compress_image(image_array, k)
 
 
-    # Show compressed image
+    # Display compressed image
     st.subheader("Compressed Image")
     st.image(compressed_image, width=600)
 
 
-    # Metrics
+    # Compression metrics
     ratio = calculate_compression_ratio(image_array.shape, k)
     error = reconstruction_error(image_array, compressed_image)
 
@@ -109,22 +109,33 @@ if uploaded_file is not None:
         )
 
 
-    # Plot graphs
     fig, ax = plt.subplots(1, 2, figsize=(12, 4))
 
-
-    # Compression ratio graph
     ax[0].plot(ranks, compression_ratios)
     ax[0].set_title("Compression Ratio vs Rank")
     ax[0].set_xlabel("Rank (k)")
     ax[0].set_ylabel("Compression Ratio (%)")
 
-
-    # Reconstruction error graph
     ax[1].plot(ranks, reconstruction_errors)
     ax[1].set_title("Reconstruction Error vs Rank")
     ax[1].set_xlabel("Rank (k)")
     ax[1].set_ylabel("Error")
 
-
     st.pyplot(fig)
+
+
+    # -------- Download Section --------
+
+    st.subheader("Download Compressed Image")
+
+    compressed_pil = Image.fromarray(compressed_image)
+
+    buffer = BytesIO()
+    compressed_pil.save(buffer, format="PNG")
+
+    st.download_button(
+        label="Download Compressed Image",
+        data=buffer.getvalue(),
+        file_name="compressed_image.png",
+        mime="image/png"
+    )
