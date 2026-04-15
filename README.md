@@ -114,7 +114,7 @@ python -m streamlit run app.py
 
 Example compression output:
 
-![Demo Screenshot](sample_images/demo.png)
+pdf file of demo placed in sample_images folder as "demo.pdf"
 
 
 ## 👨‍💻 Authors
