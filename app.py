@@ -1,17 +1,7 @@
 """
 app.py
 
-Streamlit interface for SVD Image Compression Tool
-
-Features:
-
-1. Upload image
-2. Rank slider
-3. Original vs compressed display
-4. Compression ratio metric
-5. Reconstruction error metric
-6. Analysis graphs
-7. Download compressed image button
+Responsive UI version of SVD Image Compression Tool
 """
 
 import streamlit as st
@@ -27,11 +17,26 @@ from svd_utils import (
 )
 
 
-# Title
+# ---------------- Page Config ----------------
+
+st.set_page_config(
+    page_title="SVD Image Compression Tool",
+    page_icon="📊",
+    layout="wide"
+)
+
+
+# ---------------- Title Section ----------------
+
 st.title("SVD Image Compression Tool")
 
+st.caption(
+    "Interactive visualization of low-rank image approximation using Singular Value Decomposition (SVD)"
+)
 
-# Upload image
+
+# ---------------- Upload Section ----------------
+
 uploaded_file = st.file_uploader(
     "Upload an image",
     type=["jpg", "jpeg", "png"]
@@ -40,7 +45,6 @@ uploaded_file = st.file_uploader(
 
 if uploaded_file is not None:
 
-    # Load image
     image = Image.open(uploaded_file).convert("RGB")
 
     # Resize large images for performance
@@ -51,46 +55,71 @@ if uploaded_file is not None:
     image_array = np.array(image)
 
 
-    # Display original image
-    st.subheader("Original Image")
-    st.image(image_array, width=600)
+    # ---------------- Rank Selection ----------------
 
+    st.markdown("### Compression Control")
 
-    # Rank slider
     max_rank = min(image_array.shape[0], image_array.shape[1])
     slider_max = min(max_rank, 200)
 
     k = st.slider(
         "Select compression rank (k)",
-        1,
-        slider_max,
-        min(50, slider_max)
+        min_value=1,
+        max_value=slider_max,
+        value=min(50, slider_max)
     )
 
 
-    # Compress image
+    # ---------------- Compression ----------------
+
     with st.spinner("Compressing image using SVD..."):
         compressed_image = compress_image(image_array, k)
 
 
-    # Display compressed image
-    st.subheader("Compressed Image")
-    st.image(compressed_image, width=600)
+    # ---------------- Image Comparison ----------------
+
+    st.markdown("### Image Comparison")
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+        st.image(
+            image_array,
+            caption="Original Image",
+            use_container_width=True
+        )
+
+    with col2:
+        st.image(
+            compressed_image,
+            caption=f"Compressed Image (k = {k})",
+            use_container_width=True
+        )
 
 
-    # Compression metrics
+    # ---------------- Metrics ----------------
+
+    st.markdown("### Compression Metrics")
+
     ratio = calculate_compression_ratio(image_array.shape, k)
     error = reconstruction_error(image_array, compressed_image)
 
-    st.subheader("Compression Analysis")
+    m1, m2 = st.columns(2)
 
-    st.write(f"Compression Ratio: **{ratio}% storage saved**")
-    st.write(f"Reconstruction Error (Frobenius Norm): **{error}**")
+    m1.metric(
+        label="Compression Ratio",
+        value=f"{ratio}% saved"
+    )
+
+    m2.metric(
+        label="Reconstruction Error",
+        value=f"{error}"
+    )
 
 
-    # -------- Graph Section --------
+    # ---------------- Graph Section ----------------
 
-    st.subheader("Rank vs Compression Analysis Graphs")
+    st.markdown("### Rank vs Compression Analysis")
 
     ranks = list(range(5, slider_max + 1, 10))
 
@@ -98,35 +127,40 @@ if uploaded_file is not None:
     reconstruction_errors = []
 
     for r in ranks:
-        temp_compressed = compress_image(image_array, r)
+        temp = compress_image(image_array, r)
 
         compression_ratios.append(
             calculate_compression_ratio(image_array.shape, r)
         )
 
         reconstruction_errors.append(
-            reconstruction_error(image_array, temp_compressed)
+            reconstruction_error(image_array, temp)
         )
 
 
-    fig, ax = plt.subplots(1, 2, figsize=(12, 4))
+    fig, ax = plt.subplots(1, 2)
+
+    fig.set_size_inches(10, 4)
+
 
     ax[0].plot(ranks, compression_ratios)
     ax[0].set_title("Compression Ratio vs Rank")
     ax[0].set_xlabel("Rank (k)")
     ax[0].set_ylabel("Compression Ratio (%)")
 
+
     ax[1].plot(ranks, reconstruction_errors)
     ax[1].set_title("Reconstruction Error vs Rank")
     ax[1].set_xlabel("Rank (k)")
     ax[1].set_ylabel("Error")
 
-    st.pyplot(fig)
+
+    st.pyplot(fig, use_container_width=True)
 
 
-    # -------- Download Section --------
+    # ---------------- Download Section ----------------
 
-    st.subheader("Download Compressed Image")
+    st.markdown("### Download Result")
 
     compressed_pil = Image.fromarray(compressed_image)
 
